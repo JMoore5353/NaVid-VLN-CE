@@ -9,3 +9,4 @@ services:
       - ../:/home/mambauser/navid_ws/NaVid-VLN-CE:rw
     stdin_open: true
     tty: true
+    network_mode: host

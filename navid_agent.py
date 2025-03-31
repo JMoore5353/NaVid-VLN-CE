@@ -93,6 +93,7 @@ class NaVid_Agent(Agent):
 
 
         self.model_name = get_model_name_from_path(model_path)
+        print(f"Using model: {self.model_name}")
         self.tokenizer, self.model, self.image_processor, self.context_len = load_pretrained_model(model_path, None, get_model_name_from_path(model_path))
 
 

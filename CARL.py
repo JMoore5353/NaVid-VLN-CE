@@ -1,6 +1,7 @@
 import argparse
-from navid_agent import NaVid_Agent
 import cv2 as cv
+
+from navid_agent import NaVid_Agent
 
 
 # Maybe we make a class here for running / interfacing with CARL?
@@ -22,6 +23,9 @@ if __name__=='__main__':
     while True:
         # Get observations
         ret, frame = cap.read()
+        if not ret:
+            break
+
         obs["rgb"] = frame
         obs["instruction"]["text"] = "Go across the room to the black table and stop by the chair."
 
