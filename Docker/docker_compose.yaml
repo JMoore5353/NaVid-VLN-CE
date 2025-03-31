@@ -1,0 +1,11 @@
+services:
+  Navid:
+    build: 
+      context: .
+      dockerfile: dockerfile
+    image: navid
+    container_name: navid
+    volumes:
+      - ../:/home/mambauser/navid_ws/NaVid-VLN-CE:rw
+    stdin_open: true
+    tty: true

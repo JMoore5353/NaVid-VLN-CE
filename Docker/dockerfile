@@ -1,0 +1,41 @@
+FROM mambaorg/micromamba:cuda12.3.2-ubuntu22.04
+
+COPY --chown=$MAMBA_USER:$MAMBA_USER env.yaml /tmp/env.yaml
+RUN micromamba install -y -n base -f /tmp/env.yaml && \
+    micromamba clean --all --yes
+
+USER root
+RUN apt-get update && apt-get install -y sudo curl sed
+RUN echo "$MAMBA_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$MAMBA_USER && \
+    chmod 0440 /etc/sudoers.d/$MAMBA_USER
+USER $MAMBA_USER
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN echo 'source ~/.cargo/env' >> ~/.bashrc
+
+
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+
+# Install habitat-sim
+RUN micromamba install -c aihabitat -c conda-forge habitat-sim=0.1.7=py3.8_headless_linux_856d4b08c1a2632626bf0d205bf46471a99502b7
+
+WORKDIR /home/$MAMBA_USER/navid_ws
+
+# Install habitat-lab
+RUN git clone --branch v0.1.7 https://github.com/facebookresearch/habitat-lab.git\
+    && cd habitat-lab \
+    && python -m pip install -r requirements.txt \
+    && sed -i '/tensorflow/d' habitat_baselines/rl/requirements.txt \
+    && python -m pip install -r habitat_baselines/rl/requirements.txt \
+    && python -m pip install -r habitat_baselines/rl/ddppo/requirements.txt \
+    && python setup.py develop --all
+
+# USER root
+# Install NaVid
+RUN git clone https://github.com/JMoore5353/NaVid-VLN-CE.git \
+    && cd NaVid-VLN-CE \
+    && . ~/.cargo/env \
+    && python -m pip install -r requirements.txt
+
+
+
+
