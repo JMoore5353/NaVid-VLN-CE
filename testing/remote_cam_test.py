@@ -39,6 +39,7 @@ class ReturnCommandHandler:
 cap = cv.VideoCapture(0)
 
 while True:
+    start = time.time()
     ret, frame = cap.read()
     if not ret:
         print("Error in camera!")
@@ -46,12 +47,13 @@ while True:
 
     # Save file
     cv.imwrite("./out.jpg", frame)
+    time_to_write_img = time.time() - start
 
     # Send file and then file transfer completion flag
     start = time.time()
     subprocess.call(["bash", "./scp_file.sh"])
-    asyncio.run(client("done"))
-    print(f"Time to copy file to comp: {time.time() - start}")
+    # asyncio.run(client("done"))
+    print(f"Time to copy file to comp: {round(time.time() - start,4)}, time to write img: {round(time_to_write_img, 4)}")
 
     # Get output - blocking code
     start = time.time()
