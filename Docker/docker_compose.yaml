@@ -7,6 +7,10 @@ services:
     container_name: navid
     volumes:
       - ../:/home/mambauser/navid_ws/NaVid-VLN-CE:rw
+      - /dev/video0:/dev/video0
+    privileged: true
     stdin_open: true
     tty: true
     network_mode: host
+    gpus: all
+    user: root
