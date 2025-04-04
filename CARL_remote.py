@@ -1,5 +1,6 @@
 import asyncio
 import cv2 as cv
+import os
 import websockets
 
 from navid_agent import NaVid_Agent
@@ -13,8 +14,7 @@ async def client(message):
 class ImageFlagHandler:
     def __init__(self):
         self.stop_event = asyncio.Event()
-        # Start server
-        asyncio.run(self.run_server())
+        self.message = None
 
     async def run_server(self):
         server_task = asyncio.create_task(self.websocket_server())
@@ -42,6 +42,7 @@ class CARLRemote:
         self.info = None  # Only needed if we are doing simulation
         self.obs = {}
         self.obs['instruction'] = {}
+        self.obs["instruction"]["text"] = "Go across the room to the black table and stop by the chair."     # Default
         self.img_file_path = "output/out.jpg"
 
         print('CARL is initialized')
@@ -55,22 +56,31 @@ class CARLRemote:
         self.obs['instruction']['text'] = new_command
 
     def update(self):
-        # wait to get flag from robot -- if message not 'done', then reset agent
-        ws_handler = ImageFlagHandler()
-        message = ws_handler.get_message()
-        if message != 'done':
-            self.reset(message)
-            return
+        async def update_async():
+            # wait to get flag from robot -- if message not 'done', then reset agent
+            ws_handler = ImageFlagHandler()
+            # Start server
+            await ws_handler.run_server()
 
-        # Save new image to the observation vector
-        self.obs["rgb"] = cv.imread(self.img_file_path, cv.IMREAD_COLOR)
+            message = ws_handler.get_message()
+            if message != 'done':
+                self.reset(message)
+                return
 
-        # Get agent action
-        action = self.agent.act(self.obs, self.info, self.env_id)
-        self.env_id += 1
+            # Save new image to the observation vector
+            if not os.path.exists(self.img_file_path):
+                print(f"No image at {self.img_file_path}! Continuing")
+                return
+            self.obs["rgb"] = cv.imread(self.img_file_path, cv.IMREAD_COLOR)
 
-        # Send output action to the other computer via websockets
-        asyncio.run(client(action['action']))
+            # Get agent action
+            action = self.agent.act(self.obs, self.info, self.env_id)
+            self.env_id += 1
+
+            # Send output action to the other computer via websockets
+            await client(str(action['action']))
+
+        asyncio.run(update_async())
 
 
 # For debugging
