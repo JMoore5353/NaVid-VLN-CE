@@ -5,6 +5,14 @@ import time
 import websockets
 
 # To be run on computer with the image
+# Steps for running remotely on Zeus:
+# Terminal 1. ssh into zeus. Run docker container in this shell
+# Terminal 2. ssh into zeus. Then ssh -L 8765:localhost:8765 jacob@10.37.121.216
+#   This forwards traffic on jacob:localhost:8765 to localhost:8765
+#   Make sure AllowTcpForwarding yes on jacob in /etc/ssh/ssh_config
+# Terminal 3. ssh -L 8766:localhost:8766 zeus_home
+#   This forwards traffic on zeus:localhost:8766 to localhost:8766
+# Terminal 4. Run remote_cam_test.py
 
 # For sending image transfer completion flags
 async def client(message):
@@ -52,7 +60,7 @@ while True:
     # Send file and then file transfer completion flag
     start = time.time()
     subprocess.call(["bash", "./scp_file.sh"])
-    # asyncio.run(client("done"))
+    asyncio.run(client("done"))
     print(f"Time to copy file to comp: {round(time.time() - start,4)}, time to write img: {round(time_to_write_img, 4)}")
 
     # Get output - blocking code
