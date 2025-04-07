@@ -1,8 +1,13 @@
+import argparse
 import asyncio
 import cv2 as cv
+import glob
+import os
 import subprocess
 import time
 import websockets
+
+from IPython.core.debugger import set_trace
 
 # To be run on computer with the image
 # Steps for running remotely on Zeus:
@@ -43,17 +48,9 @@ class ReturnCommandHandler:
         async with websockets.serve(self.handler, "localhost", 8765):
             await self.stop_event.wait()  # Wait until a message is received
 
-
-cap = cv.VideoCapture(0)
-
-while True:
-    start = time.time()
-    ret, frame = cap.read()
-    if not ret:
-        print("Error in camera!")
-        break
-
+def run_inference(frame):
     # Save file
+    start = time.time()
     cv.imwrite("./out.jpg", frame)
     time_to_write_img = time.time() - start
 
@@ -70,6 +67,51 @@ while True:
     print(f"Time to get command (including inference time): {time.time() - start}")
 
     # Print the command
+    # id: 0-stop, 1 move forward, 2 turn left, 3 turn right
     print(f"Command: {cmd}\n")
 
-cv.destroyAllWindows()
+    # Show image for reference
+    out_img = frame.copy()
+    cv.putText(out_img, f"command: {cmd}", (10, out_img.shape[0]-10), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0))
+    cv.imshow("Image", out_img)
+    cv.waitKey(10)
+
+def load_prompt(prompt):
+    asyncio.run(client(prompt))
+
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='CARL test script')
+    parser.add_argument("-c", '--use-camera', action='store_true', help='Use camera or default images')
+    parser.add_argument("-d", '--img-directory', type=str, default='run1', help='Directory of test images')
+    args = parser.parse_args()
+
+    if args.use_camera:
+        cap = cv.VideoCapture(0)
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Error in camera!")
+                break
+
+            run_inference(frame)
+    else:
+        # Use directory
+        if not os.path.exists(args.img_directory):
+            raise ValueError(f"Error! Directory {args.img_directory} not found!")
+
+        img_paths = glob.glob(os.path.join(args.img_directory, "*.jpeg"))
+        img_paths = sorted(img_paths)
+
+        # Load prompt
+        load_prompt("Move forward a few feet then turn left and go through the doorway. Go past the couch and stop near the TV.")
+
+        for imgp in img_paths:
+            img = cv.imread(imgp, cv.IMREAD_COLOR)
+            # Resize so it is smaller
+            img = cv.resize(img, (378,504))
+
+            # Run inference
+            run_inference(img)
+
+    cv.destroyAllWindows()
