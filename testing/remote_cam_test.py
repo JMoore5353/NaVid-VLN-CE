@@ -7,8 +7,6 @@ import subprocess
 import time
 import websockets
 
-from IPython.core.debugger import set_trace
-
 # To be run on computer with the image
 # Steps for running remotely on Zeus:
 # Terminal 1. ssh into zeus. Run docker container in this shell
@@ -30,34 +28,41 @@ class ReturnCommandHandler:
     def __init__(self):
         self.stop_event = asyncio.Event()
         # Start server
-        asyncio.run(self.run_server())
+        # asyncio.run(self.run_server())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.run_server())
+
 
     async def run_server(self):
-        server_task = asyncio.create_task(self.websocket_server())
+        server_task = asyncio.get_event_loop().create_task(self.websocket_server())
         await server_task
 
     def get_message(self):
         return self.message
 
-    async def handler(self, websocket):
+    async def handler(self, websocket, path):
         self.message = await websocket.recv()  # Wait for one message
         print(f"Received: {self.message}")
         self.stop_event.set()  # Signal to stop the server
 
     async def websocket_server(self):
-        async with websockets.serve(self.handler, "localhost", 8765):
+        async with websockets.serve(self.handler, "localhost", 8767):
             await self.stop_event.wait()  # Wait until a message is received
 
 def run_inference(frame):
     # Save file
     start = time.time()
-    cv.imwrite("./out.jpg", frame)
+    img_path = os.path.join(os.getcwd(), 'out.jpg')
+    print("saving image to", img_path)
+    cv.imwrite(img_path, frame)
     time_to_write_img = time.time() - start
 
     # Send file and then file transfer completion flag
     start = time.time()
-    subprocess.call(["bash", "./scp_file.sh"])
-    asyncio.run(client("done"))
+    subprocess.call(["bash", "/home/car/Desktop/NaVid-VLN-CE/testing/scp_file.sh", img_path])
+    # asyncio.run(client("done"))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(client("done"))
     print(f"Time to copy file to comp: {round(time.time() - start,4)}, time to write img: {round(time_to_write_img, 4)}")
 
     # Get output - blocking code
@@ -71,13 +76,16 @@ def run_inference(frame):
     print(f"Command: {cmd}\n")
 
     # Show image for reference
-    out_img = frame.copy()
-    cv.putText(out_img, f"command: {cmd}", (10, out_img.shape[0]-10), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0))
-    cv.imshow("Image", out_img)
-    cv.waitKey(10)
+    # out_img = frame.copy()
+    # cv.putText(out_img, f"command: {cmd}", (10, out_img.shape[0]-10), cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0))
+    # cv.imshow("Image", out_img)
+    # cv.waitKey(10)
+    return cmd
 
 def load_prompt(prompt):
-    asyncio.run(client(prompt))
+    # asyncio.run(client(prompt))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(client(prompt))
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='CARL test script')

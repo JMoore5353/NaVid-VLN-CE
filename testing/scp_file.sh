@@ -1,6 +1,8 @@
 #!/bin/bash
 
-REMOTE_WORKHORSE_USER="zeus_home"
+pwd
+
+REMOTE_WORKHORSE_USER="zeus"
 REMOTE_WORKHORSE_IP="192.168.1.2"
 REMOTE_WORKHORSE_PATH="~/Documents/NaVid-VLN-CE/output/"
 LOCAL_PATH="out.jpg"
